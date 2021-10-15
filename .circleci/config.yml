@@ -88,11 +88,7 @@ jobs:
       - run:
           name: Ensure infrascture exist
           command: |
-            aws cloudformation deploy \
-              --template-file iac/server.yml \
-              --tags name=capstone \
-              --stack-name server-${CIRCLE_WORKFLOW_ID:0:7} \
-              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}
+            aws s3 ls
             
   deploy-artifact:
     docker:
