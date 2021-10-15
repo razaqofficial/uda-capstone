@@ -108,7 +108,8 @@ jobs:
           root: ~/
           paths:
             - project/ansible/inventory.txt
-      - destroy-environment
+      - destroy-environment:
+          workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
       - slack/notify: *slack-notify-falied-deploy
             
   deploy-artifact:
@@ -144,7 +145,8 @@ jobs:
             zip -r app.zip ~/project/
             # start application
             ansible-playbook -i ansible/inventory.txt ansible/start-application.yml
-      - destroy-environment
+      - destroy-environment:
+          workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
       - slack/notify: *slack-notify-falied-deploy
 
   smoke-test:
@@ -169,7 +171,8 @@ jobs:
             then
               echo "App is not working"
             fi
-      - destroy-environment
+      - destroy-environment:
+          workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
       - slack/notify: *slack-notify-falied-deploy
 workflows:
   default:
