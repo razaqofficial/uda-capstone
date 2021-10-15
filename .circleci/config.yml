@@ -89,17 +89,17 @@ jobs:
           name: Ensure infrascture exist
           command: |
             aws cloudformation deploy \
-            --template-file iac/server.yml \
-            --tags name=capstone \
-            --stack-name server-${CIRCLE_WORKFLOW_ID:0:7} \
-            --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}
+              --template-file iac/server.yml \
+              --tags name=capstone \
+              --stack-name server-${CIRCLE_WORKFLOW_ID:0:7} \
+              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}
       - run:
           name: Add ip to ansible inventory
           command: |
             aws ec2 describe-instances \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --filters "Name=tag:Name,Values=capstone-${CIRCLE_WORKFLOW_ID:0:7}" \
-            --output text >> ansible/inventory.txt
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --filters "Name=tag:Name,Values=capstone-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --output text >> ansible/inventory.txt
       - run:
           name: Install tar gzip utility
           command: |
