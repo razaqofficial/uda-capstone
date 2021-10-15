@@ -1,0 +1,42 @@
+Description: >
+  Author: Abdurrazaq Ogunlade
+  Details: Server Infrasctructure
+  
+Parameters:
+  ID:
+    Description: Unique Identifier
+      Type: String
+      
+Resources:
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub Capstone-${WorkflowId}
+      GroupDescription: Allow port 22 for ssh and port 3030 for backend server and 9100 for node_exporter
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      SecurityGroups:
+        - Ref: InstanceSecurityGroup
+      KeyName: udacity # If you use another key pair name, you should change this value to match.
+      # If this ami id is not available for you, you can find another (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/finding-an-ami.html)
+      # Ubuntu 18 or higher works fine
+      ImageId: ami-03d5c68bab01f3496
+      Tags:
+        - Key: Name
+          Value: !Sub capstone-${ID}
+          
+Outputs:
+  WorkflowId:
+    value: !Sub ${ID}
+    Description: Stack Identifier
+    Export:
+      Name: WorkflowId
+          

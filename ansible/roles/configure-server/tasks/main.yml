@@ -1,0 +1,23 @@
+---
+
+- name: "update apt packages"
+  become: true
+  apt:
+    update_cache: yes
+    
+- name: "update package cache"
+  become: yes
+  apt:
+    update_cache: yes
+
+- name: "remove dependencies that are no longer required"
+  become: true
+  apt:
+    autoremove: true
+    
+- name: "install nodejs and npm."
+  become: true
+  shell: |
+    curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+    

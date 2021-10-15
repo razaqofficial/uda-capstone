@@ -1,0 +1,178 @@
+version: 2.1
+orbs:
+  slack: circleci/slack@4.1
+  
+  slack-notify-success-job: &slack-notify-success-job
+    event: pass
+    template: basic_success_1
+    
+  slack-notify-falied-job: &slack-notify-falied-job
+    event: fail
+    mentions: '@dev'
+    template: basic_fail_1
+    
+  slack-notify-success-deploy: &slack-notify-success-deploy
+    event: pass
+    template: success_tagged_deploy_1
+
+  slack-notify-falied-deploy: &slack-notify-falied-deploy
+    event: fail
+    mentions: '@dev'
+    template: basic_fail_1
+  
+commands:
+  destroy-environment:
+    parameters:
+      workflowId:
+        type: string
+    steps:
+      - run:
+          name: Destroy environment
+          when: on_fail
+          command: |
+            aws cloudformation delete-stack --stack-name server-<<parameters.workflowId>>
+            
+jobs:
+  test:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [dependencies]
+      - run:
+          name: Test artifact
+          command: |
+            export NODE_ENV=dev
+            make install
+            make test
+      - save_cache:
+          paths: [node_modules]
+          key: dependencies
+      - slack/notify: *slack-notify-falied-job
+        
+  scan:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - run:
+          name: Scan code
+          command: |
+            npm audit
+      - slack/notify: *slack-notify-falied-job
+            
+  lint:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [ dependencies ]
+      - run:
+          name: Lint Js and Dockerfile
+          command: |
+            export NODE_ENV=dev
+            make install
+            make lint
+      - slack/notify: *slack-notify-falied-job
+  
+  create-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Ensure infrascture exist
+          command: |
+            aws cloudformation deploy \
+            --template-file iac/server.yml \
+            --tags name=capstone
+            --stack-name server-${CIRCLE_WORKFLOW_ID:0:7} \
+            --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}
+      - run:
+          name: Add ip to ansible inventory
+          command: |
+            aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --filters "Name=tag:Name,Values=capstone-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --output text >> ansible/inventory.txt
+      - run:
+          name: Install tar gzip utility
+          command: |
+            yum -y install tar gzip
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/ansible/inventory.txt
+      - destroy-environment
+      - slack/notify: *slack-notify-falied-deploy
+            
+  deploy-artifact:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+      - add_ssh_keys:
+          fingerprints: ["11:d0:c0:4d:1e:98:da:33:6a:ba:d9:c7:aa:bd:81:8a"]
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+            pip install awscli
+            apt-get tar gzip
+      - run:
+          name: Configure server
+          command: |
+            echo APP_PORT=$APP_PORT >> ".env"
+            echo NODE_ENV=production > ".env"
+            echo VERSION=$APP_VERSION >> ".env"
+            echo DB_HOST=$DB_HOST >> ".env"
+            echo DB_PORT=$DB_PORT >> ".env"
+            echo DB_USER=$DB_USER >> ".env"
+            echo DB_PASSWORD=$DB_PASSWORD >> ".env"
+            echo DB_NAME=$DB_NAME >> ".env"
+            export ANSIBLE_HOST_KEY_CHECKING=False
+            ansible-playbook -i ansible/inventory.txt ansible/configure-server.yml
+            
+            # zip the artifact
+            zip -r app.zip ~/project/
+            # start application
+            ansible-playbook -i ansible/inventory.txt ansible/start-application.yml
+      - destroy-environment
+      - slack/notify: *slack-notify-falied-deploy
+
+  smoke-test:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apk add curl
+            pip install awscli
+      - run:
+          name: Run smoke test
+          command: |
+            export APP_URL=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicDnsName' --filters "Name=tag:Name,Values=capstone-${CIRCLE_WORKFLOW_ID:0:7}" --output text)
+            echo $APP_URL
+            if curl -s ${APP_URL}
+            then
+              echo "App is working"
+              return 0
+            then
+              echo "App is not working"
+            fi
+      - destroy-environment
+      - slack/notify: *slack-notify-falied-deploy
+workflows:
+  default:
+    jobs:
+      - test
+      - scan:
+          requires: [test]
+      - lint:
+          requires: [test]

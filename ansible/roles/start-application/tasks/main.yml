@@ -1,0 +1,13 @@
+---
+
+- name: "unzip app directory"
+  become: true
+  unarchive:
+    src: ~/project/app.zip
+    dest: /home/ubuntu
+    
+- name: "start application"
+  become: true
+  shell: |
+    cd /home/ubuntu/app
+    npm run start
