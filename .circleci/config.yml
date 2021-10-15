@@ -92,8 +92,45 @@ jobs:
               --template-file iac/server.yml \
               --tags name=capstone \
               --stack-name server-${CIRCLE_WORKFLOW_ID:0:7} \
-              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}X
+              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}
             
+  deploy-artifact:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+      - add_ssh_keys:
+          fingerprints: ["11:d0:c0:4d:1e:98:da:33:6a:ba:d9:c7:aa:bd:81:8a"]
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+            pip install awscli
+            apt-get tar gzip
+      - run:
+          name: Configure server
+          command: |
+            echo APP_PORT=$APP_PORT >> ".env"
+            echo NODE_ENV=production > ".env"
+            echo VERSION=$APP_VERSION >> ".env"
+            echo DB_HOST=$DB_HOST >> ".env"
+            echo DB_PORT=$DB_PORT >> ".env"
+            echo DB_USER=$DB_USER >> ".env"
+            echo DB_PASSWORD=$DB_PASSWORD >> ".env"
+            echo DB_NAME=$DB_NAME >> ".env"
+            export ANSIBLE_HOST_KEY_CHECKING=False
+            ansible-playbook -i ansible/inventory.txt ansible/configure-server.yml
+            
+            # zip the artifact
+            zip -r app.zip ~/project/
+            # start application
+            ansible-playbook -i ansible/inventory.txt ansible/start-application.yml
+      - destroy-environment:
+          workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
+      - slack/notify: *slack-notify-falied-deploy
+
   smoke-test:
     docker:
       - image: python:3.7-alpine3.11
@@ -129,7 +166,7 @@ workflows:
           requires: [test]
       - create-infrastructure:
           requires: [lint]
-     # - deploy-artifact:
-      #    requires: [create-infrastructure]
-      #- smoke-test:
-       #   requires: [deploy-artifact]
+    # - deploy-artifact:
+    #     requires: [create-infrastructure]
+    # - smoke-test:
+    #     requires: [deploy-artifact]
