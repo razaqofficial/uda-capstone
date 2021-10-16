@@ -35,8 +35,7 @@ Resources:
           
 Outputs:
   WorkflowId:
-    value: !Sub ${ID}
+    Value: !Sub ${ID}
     Description: Stack Identifier
     Export:
       Name: WorkflowId
-          
