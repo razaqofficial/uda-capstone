@@ -10,4 +10,5 @@
   become: true
   shell: |
     cd /home/ubuntu/app
+    npm i
     npm run start

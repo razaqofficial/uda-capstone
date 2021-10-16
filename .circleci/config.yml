@@ -146,8 +146,8 @@ jobs:
             zip -r app.zip ~/project/
             # start application
             ansible-playbook -i ansible/inventory.txt ansible/start-application.yml
-      - destroy-environment:
-          workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
+      #- destroy-environment:
+      #    workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
       - slack/notify: *slack-notify-failed-job
 
   smoke-test:
