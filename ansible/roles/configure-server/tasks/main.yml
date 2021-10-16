@@ -15,6 +15,13 @@
   apt:
     autoremove: true
     
+- name: "Install zip and unzip"
+  become: true
+  apt:
+    name: ["zip", "unzip"]
+    state: latest
+    update_cache: yes
+    
 - name: "install nodejs and npm."
   become: true
   shell: |
