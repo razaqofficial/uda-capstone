@@ -34,8 +34,8 @@ Resources:
           Value: !Sub capstone-${ID}
           
 Outputs:
-  WorkflowId:
+  WorkflowID:
     Value: !Sub ${ID}
     Description: Stack Identifier
     Export:
-      Name: WorkflowId
+      Name: WorkflowID

@@ -18,4 +18,4 @@
   shell: |
     cd /home/ubuntu/app
     npm i
-    npm run start
+    pm2 start npm --name server -- run start

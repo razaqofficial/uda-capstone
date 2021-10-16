@@ -22,9 +22,15 @@
     state: latest
     update_cache: yes
     
-- name: "install nodejs and npm."
+- name: "Install nodejs and npm."
   become: true
   shell: |
     curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
     sudo apt-get install -y nodejs
+    
+- name: "Install pm2"
+  become: true
+  npm:
+    name: pm2
+    global: yes
     

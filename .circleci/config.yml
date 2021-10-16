@@ -86,6 +86,14 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Save old workflowID
+          command: |
+            touch workflow_id.txt
+            export workflowID = $(aws cloudformation \
+            list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+            --no-paginate --output text)
+            curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data $ https://api.memstash.io/values/old_workflow_id
+      - run:
           name: Ensure infrascture exist
           command: |
             aws cloudformation deploy \
