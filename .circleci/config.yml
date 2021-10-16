@@ -129,8 +129,8 @@ jobs:
       - run:
           name: Configure server
           command: |
-            echo APP_PORT=$APP_PORT >> ".env"
             echo NODE_ENV=production > ".env"
+            echo APP_PORT=$APP_PORT >> ".env"
             echo VERSION=$APP_VERSION >> ".env"
             echo DB_HOST=$DB_HOST >> ".env"
             echo DB_PORT=$DB_PORT >> ".env"
