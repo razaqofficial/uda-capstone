@@ -22,12 +22,12 @@ Parameters:
 Resources:
   VPC:
     Type: AWS::EC2::VPC
-      Properties:
-        CidrBlock: !Ref VpcCIDR
-        EnableDnsHostnames: true
-        Tags:
-          - Key: Name
-            Value: !Ref EnvironmentName
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
             
   InternetGateway:
     Type: AWS::EC2::InternetGateway
