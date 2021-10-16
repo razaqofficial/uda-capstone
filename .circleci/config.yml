@@ -124,9 +124,8 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk add --update ansible
+            apk add --update curl ansible tar gzip zip unzip
             pip install awscli
-            apk add tar gzip curl
       - run:
           name: Configure server
           command: |
@@ -140,11 +139,13 @@ jobs:
             echo DB_NAME=$DB_NAME >> ".env"
             export ANSIBLE_HOST_KEY_CHECKING=False
             ansible-playbook -i ansible/inventory.txt ansible/configure-server.yml
-            
-            # zip the artifact
-            zip -r app.zip ~/project/
-            # start application
-            ansible-playbook -i ansible/inventory.txt ansible/start-application.yml
+      -run:
+        name: Start Application
+        command: |
+          # zip the artifact
+          zip -r app.zip ~/project/
+          # start application
+          ansible-playbook -i ansible/inventory.txt ansible/start-application.yml
       - destroy-environment:
           workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
       - slack/notify: *slack-notify-failed-job
