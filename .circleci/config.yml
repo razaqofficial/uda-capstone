@@ -126,7 +126,7 @@ jobs:
           command: |
             apk add --update ansible
             pip install awscli
-            apt-get tar gzip
+            apk add tar gzip
       - run:
           name: Configure server
           command: |
