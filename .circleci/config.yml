@@ -6,7 +6,7 @@ orbs:
     event: pass
     template: basic_success_1
     
-  slack-notify-falied-job: &slack-notify-falied-job
+  slack-notify-failed-job: &slack-notify-failed-job
     event: fail
     mentions: '@dev'
     template: basic_fail_1
@@ -15,7 +15,7 @@ orbs:
     event: pass
     template: success_tagged_deploy_1
 
-  slack-notify-falied-deploy: &slack-notify-falied-deploy
+  slack-notify-failed-deploy: &slack-notify-failed-deploy
     event: fail
     mentions: '@dev'
     template: basic_fail_1
@@ -49,7 +49,7 @@ jobs:
       - save_cache:
           paths: [node_modules]
           key: dependencies
-      - slack/notify: *slack-notify-falied-job
+      - slack/notify: *slack-notify-failed-job
       
   scan:
     docker:
@@ -60,7 +60,7 @@ jobs:
           name: Scan code
           command: |
             npm audit
-      - slack/notify: *slack-notify-falied-job
+      - slack/notify: *slack-notify-failed-job
       
   lint:
     docker:
@@ -78,7 +78,7 @@ jobs:
             chmod +x /usr/local/bin/hadolint
             export NODE_ENV=dev
             make lint
-      - slack/notify: *slack-notify-falied-job
+      - slack/notify: *slack-notify-failed-job
   
   create-infrastructure:
     docker:
@@ -110,7 +110,7 @@ jobs:
             - project/ansible/inventory.txt
       - destroy-environment:
           workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
-      - slack/notify: *slack-notify-falied-deploy
+      - slack/notify: *slack-notify-failed-job
       
   deploy-artifact:
     docker:
@@ -126,7 +126,7 @@ jobs:
           command: |
             apk add --update ansible
             pip install awscli
-            apk add tar gzip
+            apk add tar gzip curl
       - run:
           name: Configure server
           command: |
@@ -147,7 +147,7 @@ jobs:
             ansible-playbook -i ansible/inventory.txt ansible/start-application.yml
       - destroy-environment:
           workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
-      - slack/notify: *slack-notify-falied-deploy
+      - slack/notify: *slack-notify-failed-job
 
   smoke-test:
     docker:
@@ -173,17 +173,17 @@ jobs:
             fi
       - destroy-environment:
           workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
-      - slack/notify: *slack-notify-falied-deploy
+      - slack/notify: *slack-notify-failed-job
 workflows:
   default:
     jobs:
-      - test
-      - scan:
-          requires: [test]
-      - lint:
-          requires: [test]
-      - create-infrastructure:
-          requires: [lint]
+      #- test
+      #- scan:
+      #    requires: [test]
+      #- lint:
+      #    requires: [test]
+      - create-infrastructure
+      #    requires: [lint]
       - deploy-artifact:
           requires: [create-infrastructure]
       - smoke-test:
