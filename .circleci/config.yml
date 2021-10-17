@@ -43,8 +43,8 @@ commands:
           name: Save to memstash
           command: |
             curl -H "Content-Type: text/plain" \
-            -H "token: ${MEMSTASH_TOKEN}" --request PUT \
-            --data <<parameters.KeyValue>> https://api.memstash.io/values/<<parameters.KeyValue>>
+              -H "token: ${MEMSTASH_TOKEN}" --request PUT \
+              --data <<parameters.KeyValue>> https://api.memstash.io/values/<<parameters.KeyValue>>
       
   retrieve-from-memstash:
     parameters:
