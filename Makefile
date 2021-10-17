@@ -10,5 +10,7 @@ lint:
 	npm run lint
 	# Lint dockerfile
 	#hadolint --ignore DL3042 Dockerfile
+check-circleci:
+	circleci config validate
 
 all: install test lint

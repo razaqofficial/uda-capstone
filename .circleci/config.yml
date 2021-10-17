@@ -32,6 +32,31 @@ commands:
           command: |
             aws cloudformation delete-stack --stack-name server-<<parameters.workflowId>>
             
+  save-to-memstash:
+    parameters:
+      KeyName:
+        type: string
+      KeyValue:
+        type: string
+    steps:
+      - run:
+          name: Save to memstash
+          command: |
+            curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" \
+            --request PUT --data <<parameters.KeyValue>> https://api.memstash.io/values/<<parameters.KeyValue>>
+      
+  retrieve-from-memstash:
+    parameters:
+      KeyName:
+        type: string
+      KeyAttr:
+        type: string
+    steps:
+      - run:
+          name: Retrieve from memstash
+          command: |
+            export <<parameters.KeyAttr>>=curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/<<parameters.KeyName>>
+
 jobs:
   test:
     docker:
@@ -85,14 +110,10 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
-      - run:
-          name: Save old workflowID
-          command: |
-            touch workflow_id.txt
-            export workflowID=$(aws cloudformation \
-            list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
-            --no-paginate --output text)
-            curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data $ https://api.memstash.io/values/old_workflow_id
+      - save-to-memstash:
+          KeyName: old_workflow_id
+          KeyValue: $(aws cloudformation list-exports --query "Exports[?Name==\`WorkflowID\`].Value" --no-paginate --output text)
+      
       - run:
           name: Ensure infrascture exist
           command: |
@@ -173,7 +194,7 @@ jobs:
           command: |
             export APP_URL=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicDnsName' --filters "Name=tag:Name,Values=capstone-${CIRCLE_WORKFLOW_ID:0:7}" --output text)
             echo "
-            if curl -s "http://$APP_URL:3001" | grep "CRUD NODEJS MYSQL"
+            if curl -s "http://${APP_URL:3001}" | grep "CRUD NODEJS MYSQL"
             then
               echo "App is working"
               return 0
@@ -181,7 +202,7 @@ jobs:
               echo "App is not working"
               return 1
             fi
-     # - destroy-environment:
+      #- destroy-environment:
        #   workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
       - slack/notify: *slack-notify-failed-job
       
@@ -190,6 +211,9 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
+      - retrieve-from-memstash:
+          KeyName: old_workflow_id
+          KeyAttr: OldWorkflowIDAttr
       - run:
           name: Get old stack workflow id and delete stack
           command: |
@@ -197,6 +221,7 @@ jobs:
             export workflowId=curl -H "token: 2b90392c-b9e9-4c1d-b06e-799d939813d8" --request GET https://api.memstash.io/values/old_workflow_id
   
             echo OldWorkflowID: "$workflowId"
+            echo OldWorkflowIDAttrVal: "${OldWorkflowIDAttr}"
 workflows:
   default:
     jobs:
