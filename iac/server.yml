@@ -40,6 +40,6 @@ Resources:
 Outputs:
   WorkflowID:
     Value: !Sub ${ID}
-    Description: Stack Identifier
+    Description: stack-identifier
     Export:
-      Name: WorkflowID
+      Name: !Sub server-${ID}

@@ -113,7 +113,7 @@ jobs:
       - checkout
       - save-to-memstash:
           KeyName: old_workflow_id
-          KeyValue: $(aws cloudformation list-exports --query "Exports[?Name==\`WorkflowID\`].Value" --no-paginate --output text)
+          KeyValue: $(aws cloudformation describe-stacks --query 'Stacks[*].Outputs[*].OutputValue' --no-paginate --output text)
       
       - run:
           name: Ensure infrascture exist
