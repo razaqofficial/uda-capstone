@@ -218,10 +218,10 @@ jobs:
           name: Get old stack workflow id and delete stack
           command: |
             yum -y install tar gzip
-            export workflowId=curl -H "token: 2b90392c-b9e9-4c1d-b06e-799d939813d8" --request GET https://api.memstash.io/values/old_workflow_id
-  
-            echo OldWorkflowID: "$workflowId"
-            echo OldWorkflowIDAttrVal: "${OldWorkflowIDAttr}"
+            export workflowId=$(curl -H "token:${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/old_workflow_id)
+            aws cloudformation delete-stack --stack-name "server-${workflowId}"
+            
+            echo "OldWorkflowIDAttrVal is: ${OldWorkflowIDAttr}"
 workflows:
   default:
     jobs:
