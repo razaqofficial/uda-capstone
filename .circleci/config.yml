@@ -211,9 +211,6 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
-      - retrieve-from-memstash:
-          KeyName: old_workflow_id
-          KeyAttr: OldWorkflowIDAttr
       - run:
           name: Get old stack workflow id and delete stack
           command: |
@@ -221,7 +218,6 @@ jobs:
             export workflowId=$(curl -H "token:${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/old_workflow_id)
             aws cloudformation delete-stack --stack-name "server-${workflowId}"
             
-            echo "OldWorkflowIDAttrVal is: ${OldWorkflowIDAttr}"
 workflows:
   default:
     jobs:
