@@ -194,7 +194,6 @@ jobs:
           name: Run smoke test
           command: |
             export APP_URL=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicDnsName' --filters "Name=tag:Name,Values=capstone-${CIRCLE_WORKFLOW_ID:0:7}" --output text)
-            echo "
             if curl -s "http://${APP_URL:3001}" | grep "CRUD NODEJS MYSQL"
             then
               echo "App is working"
