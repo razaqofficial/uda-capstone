@@ -98,7 +98,7 @@ jobs:
       - run:
           name: Lint Js and Dockerfile
           command: |
-            apt-get --update nodejs npm
+            apt-get nodejs npm
             export NODE_ENV=dev
             wget -O /bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
             chmod +x /bin/hadolint
