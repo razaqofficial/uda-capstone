@@ -1,0 +1,18 @@
+Description: >
+  Author: Abdurrazaq Ogunlade
+  Details: Network Infrastructure Configuration
+  
+Resources:
+  Cluster:
+    Type:
+      AWS::EKS::Cluster
+    Properties:
+      Name: capstone-cluster
+      Version: '1.21'
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - sg-2fb3fc1a
+        SubnetIds:
+          - subnet-5f841e02
+          - subnet-9461d4de
+      RoleArn: 'arn:aws:iam::283630487522:role/ClusterRole'
