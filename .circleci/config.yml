@@ -109,34 +109,23 @@ jobs:
       - slack/notify: *slack-notify-failed-job
       
   build-project:
-    docker:
-      - image: docker:17.05.0-ce-git
+    machine: true
     steps:
       - checkout
-      - setup_remote_docker
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --no-cache \
-              py-pip=9.0.0-r1
-            pip install awscli
-            
-      - run:
-          name: Build image and push to AWS ECR
-          command: |
-            aws ecr get-login-password --region us-west-2 | docker login --username ${ECR_USER} --password-stdin ${ECR_PASSWORD}
-            echo NODE_ENV=production > ".env"
-            echo APP_PORT=$APP_PORT >> ".env"
-            echo VERSION=$APP_VERSION >> ".env"
-            echo DB_HOST=$DB_HOST >> ".env"
-            echo DB_PORT=$DB_PORT >> ".env"
-            echo DB_USER=$DB_USER >> ".env"
-            echo DB_PASSWORD=$DB_PASSWORD >> ".env"
-            echo DB_NAME=$DB_NAME >> ".env"
-            docker build -t capstone .
-            docker tag capstone:${CIRCLE_WORKFLOW_ID:0:7} ${ECR_PASSWORD}/capstone:${CIRCLE_WORKFLOW_ID:0:7}
-            docker push ${ECR_PASSWORD}/capstone:${CIRCLE_WORKFLOW_ID:0:7}
-            
+      run:
+        name: Docker build and push
+        echo "$DOCKER_PASS" | docker login --username $DOCKER_USER --password-stdin
+        echo NODE_ENV=production > ".env"
+        echo APP_PORT=$APP_PORT >> ".env"
+        echo VERSION=$APP_VERSION >> ".env"
+        echo DB_HOST=$DB_HOST >> ".env"
+        echo DB_PORT=$DB_PORT >> ".env"
+        echo DB_USER=$DB_USER >> ".env"
+        echo DB_PASSWORD=$DB_PASSWORD >> ".env"
+        echo DB_NAME=$DB_NAME >> ".env"
+      - run: docker build -t razaqofficial/capstone:${CIRCLE_WORKFLOW_ID:0:7} .
+      - run: docker push razaqofficial/capstone:${CIRCLE_WORKFLOW_ID:0:7}
+           
   create-infrastructure:
     docker:
       - image: amazon/aws-cli
