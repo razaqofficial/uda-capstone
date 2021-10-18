@@ -182,7 +182,7 @@ workflows:
       #    cluster-name: capstone-app-deployment
       - aws-eks/update-container-image:
           cluster-name: capstone-app-deployment
-          container-image-updates: "razaqofficial/capstone:latest"
+          container-image-updates: "capstone-deployment=razaqofficial/capstone:latest"
           get-rollout-status: true
           record: true
           resource-name: deployment/capstone-deployment
