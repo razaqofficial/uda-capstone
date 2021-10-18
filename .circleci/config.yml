@@ -99,11 +99,10 @@ jobs:
           name: Lint Js and Dockerfile
           command: |
             echo $(which node)
-            make install
+            export NODE_ENV=dev
             wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
             chmod +x /usr/local/bin/hadolint
-            export NODE_ENV=dev
-            make lint
+            hadolint --ignore DL3042, --ignore DL3018 Dockerfile
       - slack/notify: *slack-notify-failed-job
   
   create-infrastructure:
