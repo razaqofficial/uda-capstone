@@ -180,9 +180,11 @@ workflows:
       #    requires: [build-project]
       - create-deployment:
           cluster-name: capstone-app-deployment
+          requires: [build-project]
       - aws-eks/update-container-image:
           cluster-name: capstone-app-deployment
           container-image-updates: "capstone-deployment=razaqofficial/capstone:latest"
           get-rollout-status: true
           record: true
           resource-name: deployment/capstone-deployment
+          requires: [create-deployment]
