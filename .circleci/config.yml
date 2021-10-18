@@ -168,19 +168,18 @@ jobs:
 workflows:
   default:
     jobs:
-      - test
-      - scan:
-          requires: [test]
-      - lint:
-          requires: [test]
-      - build-project:
-          requires: [lint]
-      - create-cluster:
-          cluster-name: capstone-app
-          requires: [build-project]
+     #- test
+     #- scan:
+     #    requires: [test]
+     #- lint:
+     #    requires: [test]
+     #- build-project:
+     #    requires: [lint]
+     #- create-cluster:
+     #    cluster-name: capstone-app
+     #    requires: [build-project]
       - create-deployment:
           cluster-name: capstone-app
-          requires: [create-cluster]
       - aws-eks/update-container-image:
           cluster-name: capstone-app
           container-image-updates: "capstone-deployment=razaqofficial/capstone:latest"
