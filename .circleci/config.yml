@@ -304,22 +304,9 @@ workflows:
       #    requires: [test]
       #- lint
       #    requires: [test]
-      - build-project
+      #- build-project
       - create-small-cluster:
           cluster-name: eks-demo-deployment
-          requires: [build-project]
-      - create-service:
-          cluster-name: eks-demo-deployment
-          requires: [create-small-cluster]
-      - create-deployment:
-          cluster-name: eks-demo-deployment
-          requires: [create-service]
-      - aws-eks/update-container-image:
-          cluster-name: eks-demo-deployment
-          container-image-updates: "razaqofficial/capstone:${CIRCLE_WORKFLOW_ID:0:7}"
-          record: true
-          requires: [create-deployment]
-          resource-name: deployment/capstone-app
       # - create-infrastructure
       #    requires: [lint]
      #- deploy-artifact:
