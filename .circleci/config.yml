@@ -1,6 +1,7 @@
 version: 2.1
 orbs:
   slack: circleci/slack@4.1
+  aws-ecr: circleci/aws-ecr@x.y.z
   
   slack-notify-success-job: &slack-notify-success-job
     event: pass
@@ -110,13 +111,14 @@ jobs:
       
   build-project:
     docker:
-      - image: amazon/aws-cli
+      - image: python:3.7-alpine3.11
     steps:
       - checkout
       - run:
           name: Install dependencies
-          command:
-            yum -y install docker
+          command: |
+            apk update && apk add --no-cache docker-cli
+            pip install awscli
       - run:
           name: Build image and push to AWS ECR
           command: |
