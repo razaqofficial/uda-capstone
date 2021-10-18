@@ -1,135 +1,4 @@
-version: 2.1
-orbs:
-  slack: circleci/slack@4.1
-  aws-eks: circleci/aws-eks@1.1.0
-  kubernetes: circleci/kubernetes@0.4.0
-  
-  slack-notify-success-job: &slack-notify-success-job
-    event: pass
-    template: basic_success_1
-    
-  slack-notify-failed-job: &slack-notify-failed-job
-    event: fail
-    mentions: '@dev'
-    template: basic_fail_1
-    
-  slack-notify-success-deploy: &slack-notify-success-deploy
-    event: pass
-    template: success_tagged_deploy_1
-
-  slack-notify-failed-deploy: &slack-notify-failed-deploy
-    event: fail
-    mentions: '@dev'
-    template: basic_fail_1
-  
-commands:
-  destroy-environment:
-    parameters:
-      workflowId:
-        type: string
-    steps:
-      - run:
-          name: Destroy environment
-          when: on_fail
-          command: |
-            aws cloudformation delete-stack --stack-name server-<<parameters.workflowId>>
-            
-  save-to-memstash:
-    parameters:
-      KeyName:
-        type: string
-      KeyValue:
-        type: string
-    steps:
-      - run:
-          name: Save to memstash
-          command: |
-            curl -H "Content-Type: text/plain" \
-              -H "token: ${MEMSTASH_TOKEN}" --request PUT \
-              --data "<<parameters.KeyValue>>" https://api.memstash.io/values/<<parameters.KeyName>>
-      
-  retrieve-from-memstash:
-    parameters:
-      KeyName:
-        type: string
-      KeyAttr:
-        type: string
-    steps:
-      - run:
-          name: Retrieve from memstash
-          command: |
-            export <<parameters.KeyAttr>>=curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/<<parameters.KeyName>>
-
 jobs:
-  test:
-    docker:
-      - image: circleci/node:13.8.0
-    steps:
-      - checkout
-      - restore_cache:
-          keys: [dependencies]
-      - run:
-          name: Test artifact
-          command: |
-            export NODE_ENV=dev
-            make install
-            make test
-      - save_cache:
-          paths: [node_modules]
-          key: dependencies
-      - slack/notify: *slack-notify-failed-job
-      
-  scan:
-    docker:
-      - image: circleci/node:13.8.0
-    steps:
-      - checkout
-      - run:
-          name: Scan code
-          command: |
-            npm audit
-      - slack/notify: *slack-notify-failed-job
-      
-  lint:
-    docker:
-      - image: python:3.7-alpine3.11
-    steps:
-      - checkout
-      - restore_cache:
-          keys: [ dependencies ]
-      - run:
-          name: Lint Js and Dockerfile
-          command: |
-            apk add --update nodejs npm
-            export NODE_ENV=dev
-            wget -O /bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
-            chmod +x /bin/hadolint
-            export NODE_ENV=dev
-            npm install --only=dev
-            npm run lint
-            hadolint --ignore DL3042 --ignore DL3000 --ignore DL3018 Dockerfile
-      - slack/notify: *slack-notify-failed-job
-      
-  build-project:
-    machine: true
-    steps:
-      - checkout
-      - run:
-          name: Docker build and push
-          command: |
-            echo "$DOCKER_PASS" | docker login --username $DOCKER_USER --password-stdin
-            echo NODE_ENV=production > ".env"
-            echo APP_PORT=$APP_PORT >> ".env"
-            echo VERSION=$APP_VERSION >> ".env"
-            echo DB_HOST=$DB_HOST >> ".env"
-            echo DB_PORT=$DB_PORT >> ".env"
-            echo DB_USER=$DB_USER >> ".env"
-            echo DB_PASSWORD=$DB_PASSWORD >> ".env"
-            echo DB_NAME=$DB_NAME >> ".env"
-      - run: docker build -t razaqofficial/capstone:${CIRCLE_WORKFLOW_ID:0:7} .
-      - run: docker push razaqofficial/capstone:${CIRCLE_WORKFLOW_ID:0:7}
-   
-  #k8s jobs
   create-deployment:
     executor: aws-eks/python3
     parameters:
@@ -145,8 +14,7 @@ jobs:
       - kubernetes/create-or-update-resource:
           get-rollout-status: true
           resource-file-path: k8s/capstone-deployment.yml
-          resource-name: deployment/capstone-app
-          
+          resource-name: deployment/blue
   create-service:
     executor: aws-eks/python3
     parameters:
@@ -160,9 +28,8 @@ jobs:
           cluster-name: << parameters.cluster-name >>
           install-kubectl: true
       - kubernetes/create-or-update-resource:
-          resource-file-path: k8s/capstone-service.yml
-          resource-name: service/capstone-service
-          
+          resource-file-path: k8s/capstone-service.yeml
+          resource-name: service/bluegreenlb
   create-small-cluster:
     executor: aws-eks/python3
     parameters:
@@ -182,136 +49,28 @@ jobs:
           nodes-max: 2
           ssh-access: false
           ssh-public-key: ''
-  
-  
-  create-infrastructure:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-      - save-to-memstash:
-          KeyName: old_workflow_id
-          KeyValue: $(aws cloudformation describe-stacks --query 'Stacks[*].Outputs[*].OutputValue' --no-paginate --output text)
-      
-      - run:
-          name: Ensure infrascture exist
-          command: |
-            aws cloudformation deploy \
-              --template-file iac/server.yml \
-              --tags name=capstone \
-              --stack-name server-${CIRCLE_WORKFLOW_ID:0:7} \
-              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}
-      - run:
-          name: Add ip to ansible inventory
-          command: |
-            aws ec2 describe-instances \
-              --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --filters "Name=tag:Name,Values=capstone-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --output text >> ansible/inventory.txt
-      - run:
-          name: Install tar gzip utility
-          command: |
-            yum -y install tar gzip
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - project/ansible/inventory.txt
-      - destroy-environment:
-          workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
-      - slack/notify: *slack-notify-failed-job
-      
-  deploy-artifact:
-    docker:
-      - image: python:3.7-alpine3.11
-    steps:
-      - checkout
-      - attach_workspace:
-          at: ~/
-      - add_ssh_keys:
-          fingerprints: ["11:d0:c0:4d:1e:98:da:33:6a:ba:d9:c7:aa:bd:81:8a"]
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update curl ansible tar gzip zip unzip
-            pip install awscli
-      - run:
-          name: Configure server
-          command: |
-            echo NODE_ENV=production > ".env"
-            echo APP_PORT=$APP_PORT >> ".env"
-            echo VERSION=$APP_VERSION >> ".env"
-            echo DB_HOST=$DB_HOST >> ".env"
-            echo DB_PORT=$DB_PORT >> ".env"
-            echo DB_USER=$DB_USER >> ".env"
-            echo DB_PASSWORD=$DB_PASSWORD >> ".env"
-            echo DB_NAME=$DB_NAME >> ".env"
-            export ANSIBLE_HOST_KEY_CHECKING=False
-            ansible-playbook -i ansible/inventory.txt ansible/configure-server.yml
-      - run:
-          name: Start Application
-          command: |
-            # zip the artifact
-            zip -r app.zip .
-            # start application
-            ansible-playbook -i ansible/inventory.txt ansible/start-application.yml
-      - destroy-environment:
-          workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
-      - slack/notify: *slack-notify-failed-job
 
-  smoke-test:
-    docker:
-      - image: python:3.7-alpine3.11
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            apk add curl
-            pip install awscli
-      - run:
-          name: Run smoke test
-          command: |
-            export APP_URL=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicDnsName' --filters "Name=tag:Name,Values=capstone-${CIRCLE_WORKFLOW_ID:0:7}" --output text)
-            if curl -s "http://${APP_URL}:3001" | grep "CRUD Nodejs Mysql"
-            then
-              echo "App is working"
-              return 0
-            else
-              echo "App is not working"
-              return 1
-            fi
-      - destroy-environment:
-          workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
-      - slack/notify: *slack-notify-failed-job
-      
-  cleanup:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-      - run:
-          name: Get old stack workflow id and delete stack
-          command: |
-            yum -y install tar gzip
-            export workflowId=$(curl -H "token:${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/old_workflow_id)
-            aws cloudformation delete-stack --stack-name "server-${workflowId}"
-            
+orbs:
+  aws-eks: circleci/aws-eks@1.1.0
+  kubernetes: circleci/kubernetes@0.4.0
+version: 2.1
 workflows:
-  default:
+  deployment:
     jobs:
-      #- test
-      #- scan:
-      #    requires: [test]
-      #- lint
-      #    requires: [test]
-      #- build-project
       - create-small-cluster:
           cluster-name: eks-demo-deployment
-      # - create-infrastructure
-      #    requires: [lint]
-     #- deploy-artifact:
-     #    requires: [create-infrastructure]
-     #- smoke-test:
-     #    requires: [deploy-artifact]
-     #- cleanup:
-     #    requires: [smoke-test]
+     #- create-service:
+     #    cluster-name: eks-demo-deployment
+     #    requires:
+     #      - create-small-cluster
+     #- create-deployment:
+     #    cluster-name: eks-demo-deployment
+     #    requires:
+     #      - create-service
+     #- aws-eks/update-container-image:
+     #    cluster-name: eks-demo-deployment
+     #    container-image-updates: 'blue=andresaaap/testblueimage:latest'
+     #    record: true
+     #    requires:
+     #      - create-deployment
+     #    resource-name: deployment/blue
