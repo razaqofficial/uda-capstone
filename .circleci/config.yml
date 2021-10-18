@@ -112,17 +112,18 @@ jobs:
     machine: true
     steps:
       - checkout
-      run:
-        name: Docker build and push
-        echo "$DOCKER_PASS" | docker login --username $DOCKER_USER --password-stdin
-        echo NODE_ENV=production > ".env"
-        echo APP_PORT=$APP_PORT >> ".env"
-        echo VERSION=$APP_VERSION >> ".env"
-        echo DB_HOST=$DB_HOST >> ".env"
-        echo DB_PORT=$DB_PORT >> ".env"
-        echo DB_USER=$DB_USER >> ".env"
-        echo DB_PASSWORD=$DB_PASSWORD >> ".env"
-        echo DB_NAME=$DB_NAME >> ".env"
+      - run:
+          name: Docker build and push
+          command: |
+            echo "$DOCKER_PASS" | docker login --username $DOCKER_USER --password-stdin
+            echo NODE_ENV=production > ".env"
+            echo APP_PORT=$APP_PORT >> ".env"
+            echo VERSION=$APP_VERSION >> ".env"
+            echo DB_HOST=$DB_HOST >> ".env"
+            echo DB_PORT=$DB_PORT >> ".env"
+            echo DB_USER=$DB_USER >> ".env"
+            echo DB_PASSWORD=$DB_PASSWORD >> ".env"
+            echo DB_NAME=$DB_NAME >> ".env"
       - run: docker build -t razaqofficial/capstone:${CIRCLE_WORKFLOW_ID:0:7} .
       - run: docker push razaqofficial/capstone:${CIRCLE_WORKFLOW_ID:0:7}
            
