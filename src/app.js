@@ -11,7 +11,7 @@ const app = express();
 const customerRoutes = require('./routes/customer');
 
 // settings
-app.set('port', process.env.APP_PORT || 3001);
+app.set('port', process.env.APP_PORT || 8080);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
