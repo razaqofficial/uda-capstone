@@ -102,6 +102,7 @@ jobs:
             export NODE_ENV=dev
             wget -O /bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
             chmod +x /bin/hadolint
+            export NODE_ENV=dev
             npm run lint
             hadolint --ignore DL3042 --ignore DL3000 --ignore DL3018 Dockerfile
       - slack/notify: *slack-notify-failed-job
