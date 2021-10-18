@@ -2,4 +2,3 @@
 node_modules
 .idea
 docker-compose.yml
-k8s
