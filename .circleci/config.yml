@@ -1,8 +1,8 @@
 version: 2.1
 orbs:
   slack: circleci/slack@4.1
-  aws-eks: circleci/aws-eks@1.1.0
-  kubernetes: circleci/kubernetes@0.4.0
+  aws-eks: circleci/aws-eks@0.2.3
+  kubernetes: circleci/kubernetes@0.12.0
   
   slack-notify-success-job: &slack-notify-success-job
     event: pass
@@ -48,18 +48,7 @@ commands:
               -H "token: ${MEMSTASH_TOKEN}" --request PUT \
               --data "<<parameters.KeyValue>>" https://api.memstash.io/values/<<parameters.KeyName>>
   
-  retrieve-from-memstash:
-    parameters:
-      KeyName:
-        type: string
-      KeyAttr:
-        type: string
-    steps:
-      - run:
-          name: Retrieve from memstash
-          command: |
-            export <<parameters.KeyAttr>>=curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/<<parameters.KeyName>>
-
+ 
 jobs:
   test:
     docker:
@@ -130,6 +119,59 @@ jobs:
       - run: docker push razaqofficial/capstone:${CIRCLE_WORKFLOW_ID:0:7}
   
   #k8s jobs
+  create-cluster:
+    executor: aws-eks/python3
+    parameters:
+      cluster-name:
+        description: |
+          Name of the EKS cluster
+        type: string
+    steps:
+      - checkout
+      - aws-eks/install-aws-iam-authenticator:
+          release-tag: ''
+      - run:
+          name: Install the eksctl tool
+          command: |
+            if which eksctl > /dev/null; then
+            echo "eksctl is already installed"
+            exit 0
+            fi
+            mkdir -p eksctl_download
+            curl --silent --location --retry 5 "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C eksctl_download
+            chmod +x eksctl_download/eksctl
+            SUDO=""
+            if [ $(id -u) -ne 0 ] && which sudo > /dev/null ; then
+            SUDO="sudo"
+            fi
+            $SUDO mv eksctl_download/eksctl /usr/local/bin/
+            rmdir eksctl_download
+      - aws-eks/create-cluster:
+          cluster-name: << parameters.cluster-name >>
+          skip-kubectl-install: false
+          verbose: 3
+          node-type: t2.small
+          nodes-max: 2
+          ssh-access: false
+          ssh-public-key: ''
+          
+  create-service:
+    executor: aws-eks/python3
+    parameters:
+      cluster-name:
+        description: |
+          Name of the EKS cluster
+        type: string
+    steps:
+      - checkout
+      - aws-eks/update-kubeconfig-with-authenticator:
+          cluster-name: << parameters.cluster-name >>
+          install-kubectl: true
+      - kubernetes/create-or-update-resource:
+          get-rollout-status: true
+          resource-file-path: k8s/service.yml
+          resource-name: service/capstone-service
+    
   create-deployment:
     executor: aws-eks/python3
     parameters:
@@ -145,36 +187,9 @@ jobs:
       - kubernetes/create-or-update-resource:
           get-rollout-status: true
           resource-file-path: k8s/capstone-deployment.yml
-          resource-name: deployment/capstone-app
+          resource-name: deployment/capstone-deployment
   
-  create-service:
-    executor: aws-eks/python3
-    parameters:
-      cluster-name:
-        description: |
-          Name of the EKS cluster
-        type: string
-    steps:
-      - checkout
-      - aws-eks/update-kubeconfig-with-authenticator:
-          cluster-name: << parameters.cluster-name >>
-          install-kubectl: true
-      - kubernetes/create-or-update-resource:
-          resource-file-path: k8s/capstone-service.yml
-          resource-name: service/capstone-service
-  
-  create-cluster:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-      - run:
-          name: Create cluster
-          command: |
-            aws cloudformation create-stack \
-            --stack-name cluster-stack-${CIRCLE_WORKFLOW_ID:0:7} \
-            --template-body file://iac/eks-cluster.yml \
-            --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM"
+  #k8s job ends
   
   create-infrastructure:
     docker:
@@ -297,7 +312,21 @@ workflows:
       #- lint
       #    requires: [test]
       #- build-project
-      - create-cluster
+      - create-cluster:
+          cluster-name: capstone-app-deployment
+      - create-service:
+          cluster-name: capstone-app-deployment
+          requires: [create-cluster]
+      - create-deployment:
+          cluster-name: capstone-app-deployment
+          requires: [create-service]
+      - aws-eks/update-container-image:
+          cluster-name: siva-capstone
+          container-image-updates: 'razaqofficial/capstone'
+          get-rollout-status: true
+          record: true
+          requires: [create-deployment]
+          resource-name: deployment/capstone-deployment
       # - create-infrastructure
       #    requires: [lint]
       #- deploy-artifact:
