@@ -116,7 +116,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk update && apk add --no-cache docker-cli
+            apk update && apk add --no-cache docker docker-cli
             pip install awscli
       - run:
           name: Build image and push to AWS ECR
