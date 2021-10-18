@@ -114,6 +114,10 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install dependencies
+          command:
+            yum -y install docker
+      - run:
           name: Build image and push to AWS ECR
           command: |
             aws ecr get-login-password --region us-west-2 | docker login --username ${ECR_USER} --password-stdin ${ECR_PASSWORD}
