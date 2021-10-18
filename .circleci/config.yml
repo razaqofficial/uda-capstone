@@ -119,9 +119,7 @@ jobs:
           command: |
             apk add --no-cache \
               py-pip=9.0.0-r1
-            pip install \
-              docker-compose==1.12.0 \
-              awscli==1.11.76
+            pip install awscli
             
       - run:
           name: Build image and push to AWS ECR
