@@ -160,7 +160,7 @@ jobs:
           install-kubectl: true
       - kubernetes/create-or-update-resource:
           get-rollout-status: true
-          resource-file-path: service.yml
+          resource-file-path: k8s/capstone-service.yml
           resource-name: service/capstone-service
     
   create-deployment:
@@ -177,7 +177,7 @@ jobs:
           install-kubectl: true
       - kubernetes/create-or-update-resource:
           get-rollout-status: true
-          resource-file-path: capstone-deployment.yml
+          resource-file-path: k8s/capstone-deployment.yml
           resource-name: deployment/capstone-deployment
   
   #k8s job ends
