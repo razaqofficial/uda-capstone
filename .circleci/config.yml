@@ -202,8 +202,8 @@ jobs:
               echo "App is not working"
               return 1
             fi
-      #- destroy-environment:
-       #   workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
+      - destroy-environment:
+          workflowId: ${CIRCLE_WORKFLOW_ID:0:7}
       - slack/notify: *slack-notify-failed-job
       
   cleanup:
@@ -224,13 +224,13 @@ workflows:
       #- test
       #- scan:
       #    requires: [test]
-      #- lint:
+      - lint
       #    requires: [test]
-      - create-infrastructure
+     # - create-infrastructure
       #    requires: [lint]
-      - deploy-artifact:
-          requires: [create-infrastructure]
-      - smoke-test:
-          requires: [deploy-artifact]
-      - cleanup:
-          requires: [smoke-test]
+     #- deploy-artifact:
+     #    requires: [create-infrastructure]
+     #- smoke-test:
+     #    requires: [deploy-artifact]
+     #- cleanup:
+     #    requires: [smoke-test]

@@ -55,4 +55,10 @@ controller.delete = (req, res) => {
   });
 }
 
+controller.about = (req, res) => {
+  req.getConnection((err, conn) => {
+      res.render('about');
+  });
+};
+
 module.exports = controller;

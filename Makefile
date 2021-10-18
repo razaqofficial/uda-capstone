@@ -9,7 +9,7 @@ lint:
 	# Lint js
 	npm run lint
 	# Lint dockerfile
-	#hadolint --ignore DL3042 Dockerfile
+	hadolint --ignore DL3042, --ignore DL3018 Dockerfile
 check-circleci:
 	circleci config validate
 
