@@ -175,14 +175,14 @@ workflows:
           requires: [test]
       - build-project:
           requires: [lint]
-      #- create-cluster:
-      #    cluster-name: capstone-app-deployment
-      #    requires: [build-project]
-      - create-deployment:
-          cluster-name: capstone-app-deployment
+      - create-cluster:
+          cluster-name: capstone-app
           requires: [build-project]
+      - create-deployment:
+          cluster-name: capstone-app
+          requires: [create-cluster]
       - aws-eks/update-container-image:
-          cluster-name: capstone-app-deployment
+          cluster-name: capstone-app
           container-image-updates: "capstone-deployment=razaqofficial/capstone:latest"
           get-rollout-status: true
           record: true
