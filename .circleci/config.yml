@@ -178,10 +178,10 @@ workflows:
       #- create-cluster:
       #    cluster-name: capstone-app-deployment
       #    requires: [build-project]
-      - create-deployment:
-          cluster-name: capstone-app-deployment
+      #- create-deployment:
+      #    cluster-name: capstone-app-deployment
       - aws-eks/update-container-image:
-          cluster-name: siva-capstone
+          cluster-name: capstone-app-deployment
           container-image-updates: "razaqofficial/capstone:latest"
           get-rollout-status: true
           record: true
