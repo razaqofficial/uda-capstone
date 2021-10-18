@@ -90,7 +90,7 @@ jobs:
       
   lint:
     docker:
-      - image: python:3.7.3-stretch
+      - image: python:3.7-alpine3.11
     steps:
       - checkout
       - restore_cache:
@@ -98,11 +98,12 @@ jobs:
       - run:
           name: Lint Js and Dockerfile
           command: |
-            apt-get nodejs npm
+            apk add --update nodejs npm
             export NODE_ENV=dev
             wget -O /bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
             chmod +x /bin/hadolint
-            make lint
+            npm run lint
+            hadolint --ignore DL3042 --ignore DL3000 --ignore DL3018 Dockerfile
       - slack/notify: *slack-notify-failed-job
   
   create-infrastructure:
