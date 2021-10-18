@@ -185,5 +185,4 @@ workflows:
           container-image-updates: "razaqofficial/capstone:latest"
           get-rollout-status: true
           record: true
-          requires: [create-deployment]
           resource-name: deployment/capstone-deployment
