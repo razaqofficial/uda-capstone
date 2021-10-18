@@ -4,8 +4,8 @@ RUN apk add --no-cache bash
 
 WORKDIR '/app'
 
-COPY package*.json .
+COPY package*.json ./
 RUN npm ci --only=production
-COPY . .
+COPY . ./
 
 CMD ["npm", "run", "start"]
