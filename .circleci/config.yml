@@ -145,7 +145,7 @@ jobs:
           nodes-max: 2
           ssh-access: false
           ssh-public-key: ''
-          
+  
   create-deployment:
     executor: aws-eks/python3
     parameters:
@@ -175,14 +175,14 @@ workflows:
           requires: [test]
       - build-project:
           requires: [lint]
-      #- create-cluster:
-      #    cluster-name: capstone-app
-      #    requires: [build-project]
+      - create-cluster:
+          cluster-name: capstone-web
+          requires: [build-project]
       - create-deployment:
-          cluster-name: capstone-app
-       #   requires: [create-cluster]
+          cluster-name: capstone-web
+          requires: [create-cluster]
       - aws-eks/update-container-image:
-          cluster-name: capstone-app
+          cluster-name: capstone-web
           container-image-updates: "capstone-deployment=razaqofficial/capstone:latest"
           get-rollout-status: true
           record: true
